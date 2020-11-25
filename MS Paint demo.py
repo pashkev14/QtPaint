@@ -28,6 +28,7 @@ class Canvas(QWidget):  # виновник торжества
         self.setCursor(Qt.CrossCursor)
         self.currentPoint = QPoint()
         self.fill = False
+        self.saved = False
         self.color_pix1 = QLabel()
         self.color_pix2 = QLabel()
         self.color_pix1.setStyleSheet('background-color: rgb(0, 0, 0)')
@@ -633,6 +634,7 @@ class Window(QMainWindow):  # класс окна
         uic.loadUi('window.ui', self)
 
         self.main_widget.setEnabled(False)
+        self.setMouseTracking(True)
         self.menubar.setEnabled(False)
         # это чтобы юзер мог получать по шапке вовремя, но для начала выведем стартовое сообщение
         self.message = QMessageBox()
@@ -731,23 +733,28 @@ class Window(QMainWindow):  # класс окна
     def saveFile(self):  # сохраняем файл, то есть, выполняем метод сохранения из класса сохранения
         saver = Save(self.canvas.size())
         saver.save(self.canvas.objects)
+        self.canvas.saved = True
 
     def newCanvas(self):  # создаем файл
         if not self.main_widget.isEnabled():  # при запуске окно отключено, чтобы юзер не намутил лишнего
             self.main_widget.setEnabled(True)
             self.clearCanvas()
         else:
-            self.message = QMessageBox()  # создание файла предлагает сохранение в отличии от очистки холста
-            self.message.setIcon(QMessageBox.Warning)
-            self.message.setWindowTitle('Помощь забывчивым')
-            self.message.setText('- Погоди. Ты сейчас хочешь избавиться от рисунка, '
-                                 'и даже не предусмотрел сохранение!\n'
-                                 'Следующий ход ведет к точке невозврата, хорошо подумай!\n')
-            self.message.addButton('- Лучше сохраниться.', QMessageBox.YesRole)
-            self.message.addButton('- Не, не буду.', QMessageBox.NoRole)
-            self.message.exec()
-            if self.message.buttonRole(self.message.clickedButton()) == 5:  # именно тест принтом вывел такое значение
-                self.saveFile()
+            if not self.canvas.saved:
+                self.message = QMessageBox()  # создание файла предлагает сохранение в отличии от очистки холста
+                self.message.setIcon(QMessageBox.Warning)
+                self.message.setWindowTitle('Помощь забывчивым')
+                self.message.setText('- Погоди. Ты сейчас хочешь избавиться от рисунка, '
+                                     'и даже не предусмотрел сохранение!\n'
+                                     'Следующий ход ведет к точке невозврата, хорошо подумай!\n')
+                self.message.addButton('- Лучше сохраниться.', QMessageBox.YesRole)
+                self.message.addButton('- Не, не буду.', QMessageBox.NoRole)
+                self.message.exec()
+                if self.message.buttonRole(self.message.clickedButton()) == 5:  # именно тест принтом вывел такое
+                    # значение
+                    self.saveFile()
+                else:
+                    self.clearCanvas()
             else:
                 self.clearCanvas()
 
@@ -759,7 +766,10 @@ class Window(QMainWindow):  # класс окна
         self.message = QMessageBox()
         self.message.setIcon(QMessageBox.Information)
         self.message.setWindowTitle('Для совсем скучающих или любопытных')
-        self.message.setText('Made by Пабло Сабля, 2020.\n\n\n\n\n'
+        self.message.setText('Made by Пабло Сабля, 2020. ver. 1.1\n\n\n\n\n'
+                             'Апдейт-лист:\n'
+                             '1.1 - исправлено сохранение в более удобную сторону.\n\n\n\n\n'
+                             '    - добавлены координаты под холст'
                              'Привет! Тебя уже стоит отблагодарить, что зашел!\n'
                              'Здесь творятся чудеса графики, стоит лишь взять под контроль мышь.\n\n\n\n\n'
                              'За использование программы в коммерческих целях а-та-та.\n'
@@ -797,25 +807,24 @@ class Window(QMainWindow):  # класс окна
                              'Список толщин позволяет настроить толщину кисти. Не влияет на карандаш.\n\n\n\n'
                              'Работа с файлами:\n\n'
                              'Открыв картинку, она отобразится поверх всего холста.\n'
-                             'Даже если ты сохранился вручную, тебе все равно предложат сохраниться.\n'
-                             'При создании нового файла тебе также предложат сохраниться.\n'
-                             'А вот кнопка "Очистить", еще раз, не ответственна за потери!\n\n'
+                             'Кнопка "Очистить" не ответственна за потери!\n\n'
                              'Надеюсь, что ты разобрался с этой маленькой брошюркой!')
         self.message.addButton('Тоже хочу надеяться', QMessageBox.YesRole)
         self.message.exec()
 
     def closeEvent(self, event):  # перед закрытием ОБЯЗАТЕЛЬНО предупредить о сохранениях
         if self.main_widget.isEnabled():
-            self.message = QMessageBox()
-            self.message.setIcon(QMessageBox.Warning)
-            self.message.setWindowTitle('Полиция сохраненок')
-            self.message.setText('- Стоять! Это полиция!\n'
-                                 'Вы нарушили приказ 66 "О сохранениях"!\n')
-            self.message.addButton('- Ладно, сохранюсь.', QMessageBox.YesRole)
-            self.message.addButton('- Нет, я против системы!', QMessageBox.NoRole)
-            self.message.exec()
-            if self.message.buttonRole(self.message.clickedButton()) == 5:
-                self.saveFile()
+            if not self.canvas.saved:
+                self.message = QMessageBox()
+                self.message.setIcon(QMessageBox.Warning)
+                self.message.setWindowTitle('Полиция сохраненок')
+                self.message.setText('- Стоять! Это полиция!\n'
+                                     'Вы нарушили приказ 66 "О сохранениях"!\n')
+                self.message.addButton('- Ладно, сохранюсь.', QMessageBox.YesRole)
+                self.message.addButton('- Нет, я против системы!', QMessageBox.NoRole)
+                self.message.exec()
+                if self.message.buttonRole(self.message.clickedButton()) == 5:
+                    self.saveFile()
 
 
 if __name__ == '__main__':

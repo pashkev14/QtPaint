@@ -4,20 +4,22 @@ from PyQt5 import uic
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush, QPolygon, QImage
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QMessageBox, QFileDialog, QColorDialog, QSizePolicy, \
     QLabel
-from PyQt5.QtCore import Qt, QPoint, QRect
+from PyQt5.QtCore import *
 
 # фантазия дошла только до размеров и их текстовых ключей
 MAINSIZE_KEYS = {'Маленькая': 2,
                  'Средняя': 3,
                  'Большая': 5,
                  'Очень большая': 8}
+# текст окна помощи собран в один файл
+HELP_TEXT = ''.join(open('src/help.txt', mode='r', encoding='utf-8').readlines())
 
 
 class Canvas(QWidget):  # виновник торжества
     def __init__(self):
         super(Canvas, self).__init__()
         # сколько параметров, на любой вкус
-        # стандартный инструмент, цвет(прописано как для кисти, так и для заливки), толщина, курсор, заливать или нет
+        # стандартный инструмент, цвет (прописано как для кисти, так и для заливки), толщина, курсор, заливать или нет
         # также здесь определены точка и отображаемые цвета; окно бы попросту не поделилось такой инфой с холстом
         self.objects = []
         self.instrument = 'brush'
@@ -620,7 +622,7 @@ class Save(QWidget):  # класс сохранения, создает карт
         for obj in objects:
             obj.draw(painter)
         painter.end()
-        file = QFileDialog.getSaveFileName(self, 'Сохранитесь', 'C:/', '(*.bmp);;(*.jpg);;(*.png)')[0]
+        file = QFileDialog.getSaveFileName(self, 'Сохранение', 'C:/', '(*.png);;(*.jpg);;(*.bmp)')[0]
         self.image.save(file)
 
     def paintEvent(self, event):
@@ -639,13 +641,12 @@ class Window(QMainWindow):  # класс окна
         # это чтобы юзер мог получать по шапке вовремя, но для начала выведем стартовое сообщение
         self.message = QMessageBox()
         self.message.setIcon(QMessageBox.Question)
-        self.message.setWindowTitle('Запускаем')
-        self.message.setText('- Для начала работы создайте новый файл или откройте '
-                             'существующий.')
-        self.message.addButton('- Хорошо.', QMessageBox.YesRole)
+        self.message.setWindowTitle('Перед запуском')
+        self.message.setText('Чтобы начать работу, создайте новый холст или откройте существующую картинку.')
+        self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
         self.menubar.setEnabled(True)
-        # создаем и настраиваем холст
+        # создаем холст
         self.canvas = Canvas()
         self.canvas_layout.addWidget(self.canvas)
         self.color_layout.addWidget(self.canvas.color_pix1, 0, 0)
@@ -725,10 +726,12 @@ class Window(QMainWindow):  # класс окна
         self.action_help.triggered.connect(self.helpMe)
 
     def openFile(self):  # открываем файл
-        file = QFileDialog.getOpenFileName(self, 'Выберите картинку', 'C:/', '(*.bmp);;(*.jpg);;(*.png)')[0]
+        file = QFileDialog.getOpenFileName(self, 'Открытие', 'C:/', '(*.png);;(*.jpg);;(*.bmp)')[0]
+        self.canvas.objects.clear()
         self.canvas.objects.append(Image(self.canvas.width(), self.canvas.height(), file))  # просто рисуем объект
         # класса картинка
-        self.main_widget.setEnabled(True)
+        if file:
+            self.main_widget.setEnabled(True)
 
     def saveFile(self):  # сохраняем файл, то есть, выполняем метод сохранения из класса сохранения
         saver = Save(self.canvas.size())
@@ -743,12 +746,11 @@ class Window(QMainWindow):  # класс окна
             if not self.canvas.saved:
                 self.message = QMessageBox()  # создание файла предлагает сохранение в отличии от очистки холста
                 self.message.setIcon(QMessageBox.Warning)
-                self.message.setWindowTitle('Помощь забывчивым')
-                self.message.setText('- Погоди. Ты сейчас хочешь избавиться от рисунка, '
-                                     'и даже не предусмотрел сохранение!\n'
-                                     'Следующий ход ведет к точке невозврата, хорошо подумай!\n')
-                self.message.addButton('- Лучше сохраниться.', QMessageBox.YesRole)
-                self.message.addButton('- Не, не буду.', QMessageBox.NoRole)
+                self.message.setWindowTitle('Предупреждение')
+                self.message.setText('Создание нового холста приведет к потери текущего.\n'
+                                     'Сохраниться?')
+                self.message.addButton('Да', QMessageBox.YesRole)
+                self.message.addButton('Нет', QMessageBox.NoRole)
                 self.message.exec()
                 if self.message.buttonRole(self.message.clickedButton()) == 5:  # именно тест принтом вывел такое
                     # значение
@@ -759,57 +761,34 @@ class Window(QMainWindow):  # класс окна
                 self.clearCanvas()
 
     def clearCanvas(self):  # рисует объект класса заливки белого цвета
+        self.canvas.objects.clear()
         self.canvas.objects.append(Fill(self.canvas.width(), self.canvas.height(), Qt.white))
         self.update()
 
     def aboutProgram(self):  # не бейте за такое кощунство, но лучше уж написать инфо, пока не поздно
         self.message = QMessageBox()
         self.message.setIcon(QMessageBox.Information)
-        self.message.setWindowTitle('Для совсем скучающих или любопытных')
-        self.message.setText('Made by Пабло Сабля, 2020. ver. 1.1\n\n\n\n\n'
-                             'Апдейт-лист:\n'
-                             '1.1 - исправлено сохранение в более удобную сторону.\n\n\n\n\n'
-                             '    - добавлены координаты под холст'
-                             'Привет! Тебя уже стоит отблагодарить, что зашел!\n'
-                             'Здесь творятся чудеса графики, стоит лишь взять под контроль мышь.\n\n\n\n\n'
-                             'За использование программы в коммерческих целях а-та-та.\n'
-                             'ТЫ ПОНЯЛ!?')
-        self.message.addButton('Очень полезная информация, спасибо автору!', QMessageBox.YesRole)
+        self.message.setWindowTitle('Информация о проекте')
+        self.message.setText('2020-2022. ver. sfw_1.0\n\n\n'
+                             'Что нового:\n\n'
+                             'sfw_1.0\n\n'
+                             '- откат до стабильной 1.0 и переработка спорных моментов исходного релиза\n'
+                             '- версия 1.1 стала экспериментальной с последующим переходом в другую ветку\n\n'
+                             '1.1\n\n'
+                             '- исправлено сохранение в более удобную сторону\n'
+                             '- добавлены координаты под холст\n\n'
+                             '1.0\n\n'
+                             '- выход основной части приложения из стадии разработки\n\n'
+                             'Создано в некоммерческих целях.')
+        self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
 
     def helpMe(self):  # самый крутой и важный метод
         self.message = QMessageBox()
         self.message.setIcon(QMessageBox.Information)
-        self.message.setWindowTitle('Подмога')
-        self.message.setText('Общее:\n\n'
-                             'Привет! Если попал сюда, а окно не работает, то создай или открой файл.\n'
-                             'Невзрачные или громоздкие курсоры? Это Qt выпендривается, '
-                             'тебе могу предложить лишь поменять стандартный курсор в панели управления.\n'
-                             'Тебе будут предлагать сохраниться. Лучше сохраняться, '
-                             'специально для тебя будет диалоговое окно.\n'
-                             'За очистку холста и баны за непотребные художества '
-                             'НИКТО не ответственен, держи в курсе!\n\n\n\n'
-                             'Рисование:\n\n'
-                             'Стандартный инструмент - кисть черного цвета средней толщины, '
-                             'можешь сразу начать рисовать.\n'
-                             'Принцип знаешь? Если нет, то тебе нужна мышь с левой кнопкой или устройства, '
-                             'имитирующие ЛКМ.\n'
-                             'Все стандартные действия прописаны сверху, '
-                             'но самые необходимые продублированы в удобном виде на панели инструментов.\n'
-                             'Кнопки "Цвет 1" и "Цвет 2" меняют текущий цвет. Не влияет на ластик.\n'
-                             'Флажок заливки позволяет залить площадь фигуры вторым цветом, '
-                             'потому он расположен в разделе "Фигуры".\n'
-                             'Предупреждение: под вторым цветом имеется ввиду неактивный цвет, '
-                             'то есть, если выбранный цвет "Цвет 1" - контур будет рисоваться цветом 1 , '
-                             'а заливка - цветом 2.\n'
-                             'Нужны собственные цвета? Кнопка "Создать цвет" , '
-                             'и диалоговое окно с цветами в твоем распоряжении.\n'
-                             'Список толщин позволяет настроить толщину кисти. Не влияет на карандаш.\n\n\n\n'
-                             'Работа с файлами:\n\n'
-                             'Открыв картинку, она отобразится поверх всего холста.\n'
-                             'Кнопка "Очистить" не ответственна за потери!\n\n'
-                             'Надеюсь, что ты разобрался с этой маленькой брошюркой!')
-        self.message.addButton('Тоже хочу надеяться', QMessageBox.YesRole)
+        self.message.setWindowTitle('Помощь')
+        self.message.setText(HELP_TEXT)
+        self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
 
     def closeEvent(self, event):  # перед закрытием ОБЯЗАТЕЛЬНО предупредить о сохранениях
@@ -817,11 +796,11 @@ class Window(QMainWindow):  # класс окна
             if not self.canvas.saved:
                 self.message = QMessageBox()
                 self.message.setIcon(QMessageBox.Warning)
-                self.message.setWindowTitle('Полиция сохраненок')
-                self.message.setText('- Стоять! Это полиция!\n'
-                                     'Вы нарушили приказ 66 "О сохранениях"!\n')
-                self.message.addButton('- Ладно, сохранюсь.', QMessageBox.YesRole)
-                self.message.addButton('- Нет, я против системы!', QMessageBox.NoRole)
+                self.message.setWindowTitle('Предупреждение')
+                self.message.setText('Вы собираетесь завершить работу с несохраненным файлом.\n'
+                                     'Сохраниться?\n')
+                self.message.addButton('Да', QMessageBox.YesRole)
+                self.message.addButton('Нет', QMessageBox.NoRole)
                 self.message.exec()
                 if self.message.buttonRole(self.message.clickedButton()) == 5:
                     self.saveFile()
@@ -832,4 +811,3 @@ if __name__ == '__main__':
     wnd = Window()
     wnd.showMaximized()
     sys.exit(app.exec())
-# лесс гооо чистить прогу

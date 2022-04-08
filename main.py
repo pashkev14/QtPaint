@@ -11,8 +11,9 @@ MAINSIZE_KEYS = {'Маленькая': 2,
                  'Средняя': 3,
                  'Большая': 5,
                  'Очень большая': 8}
-# текст окна помощи собран в один файл
+# тексты окна помощи и инфо собраны по файлам
 HELP_TEXT = ''.join(open('src/help.txt', mode='r', encoding='utf-8').readlines())
+INFO_TEXT = ''.join(open('src/about.txt', mode='r', encoding='utf-8').readlines())
 
 
 class Canvas(QWidget):  # виновник торжества
@@ -30,7 +31,8 @@ class Canvas(QWidget):  # виновник торжества
         self.setCursor(Qt.CrossCursor)
         self.currentPoint = QPoint()
         self.fill = False
-        self.saved = False
+        self.saved = True
+        self.saved_objects = 1
         self.color_pix1 = QLabel()
         self.color_pix2 = QLabel()
         self.color_pix1.setStyleSheet('background-color: rgb(0, 0, 0)')
@@ -42,6 +44,8 @@ class Canvas(QWidget):  # виновник торжества
         for obj in self.objects:
             obj.draw(painter)
         painter.end()
+        if len(self.objects) > self.saved_objects or self.saved_objects > len(self.objects) > 1:
+            self.saved = False
 
     def mousePressEvent(self, event):  # обработка клика по мыши; о хитросплетениях параметров в описании классов
         if self.instrument == 'brush':
@@ -614,6 +618,7 @@ class Image(Canvas):  # класс картинки
 class Save(QWidget):  # класс сохранения, создает картинку для сохранения
     def __init__(self, size):
         super(Save, self).__init__()
+        self.file = None
         self.image = QImage(size, QImage.Format_RGB16)
         self.image.fill(Qt.white)
 
@@ -622,8 +627,9 @@ class Save(QWidget):  # класс сохранения, создает карт
         for obj in objects:
             obj.draw(painter)
         painter.end()
-        file = QFileDialog.getSaveFileName(self, 'Сохранение', 'C:/', '(*.png);;(*.jpg);;(*.bmp)')[0]
-        self.image.save(file)
+        self.file = QFileDialog.getSaveFileName(self, 'Сохранение', 'C:/', '(*.png);;(*.jpg);;(*.bmp)')[0]
+        if self.file:
+            self.image.save(self.file)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -640,7 +646,7 @@ class Window(QMainWindow):  # класс окна
         self.menubar.setEnabled(False)
         # это чтобы юзер мог получать по шапке вовремя, но для начала выведем стартовое сообщение
         self.message = QMessageBox()
-        self.message.setIcon(QMessageBox.Question)
+        self.message.setIcon(QMessageBox.Information)
         self.message.setWindowTitle('Перед запуском')
         self.message.setText('Чтобы начать работу, создайте новый холст или откройте существующую картинку.')
         self.message.addButton('ОК', QMessageBox.YesRole)
@@ -692,19 +698,33 @@ class Window(QMainWindow):  # класс окна
         self.action_clear.triggered.connect(self.clearCanvas)
         # подключение кнопок цветов к действиям
         self.red_button.setDefaultAction(self.action_red)
+        self.red_button.setText('')
         self.orange_button.setDefaultAction(self.action_orange)
+        self.orange_button.setText('')
         self.yellow_button.setDefaultAction(self.action_yellow)
+        self.yellow_button.setText('')
         self.green_button.setDefaultAction(self.action_green)
+        self.green_button.setText('')
         self.lightblue_button.setDefaultAction(self.action_lightblue)
+        self.lightblue_button.setText('')
         self.blue_button.setDefaultAction(self.action_blue)
+        self.blue_button.setText('')
         self.purple_button.setDefaultAction(self.action_purple)
+        self.purple_button.setText('')
         self.black_button.setDefaultAction(self.action_black)
+        self.black_button.setText('')
         self.white_button.setDefaultAction(self.action_white)
+        self.white_button.setText('')
         self.lightgrey_button.setDefaultAction(self.action_lightgrey)
+        self.lightgrey_button.setText('')
         self.darkgrey_button.setDefaultAction(self.action_darkgrey)
+        self.darkgrey_button.setText('')
         self.brown_button.setDefaultAction(self.action_brown)
+        self.brown_button.setText('')
         self.darkred_button.setDefaultAction(self.action_darkred)
+        self.darkred_button.setText('')
         self.pink_button.setDefaultAction(self.action_pink)
+        self.pink_button.setText('')
         self.customcolor_button.clicked.connect(self.canvas.setCustomColor)
         # подключение стандартных цветов
         self.action_red.triggered.connect(self.canvas.setRed)
@@ -727,16 +747,19 @@ class Window(QMainWindow):  # класс окна
 
     def openFile(self):  # открываем файл
         file = QFileDialog.getOpenFileName(self, 'Открытие', 'C:/', '(*.png);;(*.jpg);;(*.bmp)')[0]
-        self.canvas.objects.clear()
-        self.canvas.objects.append(Image(self.canvas.width(), self.canvas.height(), file))  # просто рисуем объект
-        # класса картинка
         if file:
-            self.main_widget.setEnabled(True)
+            self.canvas.objects.clear()
+            self.canvas.objects.append(Image(self.canvas.width(), self.canvas.height(), file))  # просто рисуем объект
+            # класса картинка
+            if not self.main_widget.isEnabled():
+                self.main_widget.setEnabled(True)
 
     def saveFile(self):  # сохраняем файл, то есть, выполняем метод сохранения из класса сохранения
         saver = Save(self.canvas.size())
         saver.save(self.canvas.objects)
-        self.canvas.saved = True
+        if saver.file:
+            self.canvas.saved_objects = len(self.canvas.objects)
+            self.canvas.saved = True
 
     def newCanvas(self):  # создаем файл
         if not self.main_widget.isEnabled():  # при запуске окно отключено, чтобы юзер не намутил лишнего
@@ -744,19 +767,29 @@ class Window(QMainWindow):  # класс окна
             self.clearCanvas()
         else:
             if not self.canvas.saved:
-                self.message = QMessageBox()  # создание файла предлагает сохранение в отличии от очистки холста
-                self.message.setIcon(QMessageBox.Warning)
-                self.message.setWindowTitle('Предупреждение')
-                self.message.setText('Создание нового холста приведет к потери текущего.\n'
-                                     'Сохраниться?')
-                self.message.addButton('Да', QMessageBox.YesRole)
-                self.message.addButton('Нет', QMessageBox.NoRole)
-                self.message.exec()
-                if self.message.buttonRole(self.message.clickedButton()) == 5:  # именно тест принтом вывел такое
-                    # значение
-                    self.saveFile()
-                else:
+                message = QMessageBox()
+                message.setIcon(QMessageBox.Warning)
+                message.setWindowTitle('Предупреждение')
+                message.setText('Создание нового холста приведет к потери текущего.\n'
+                                'Сохраниться?\n')
+                message.setStandardButtons(QMessageBox.Save | QMessageBox.Close | QMessageBox.Cancel)
+                btnsave = message.button(QMessageBox.Save)
+                btnsave.setText('Да')
+                btnclose = message.button(QMessageBox.Close)
+                btnclose.setText('Нет')
+                btncancel = message.button(QMessageBox.Cancel)
+                btncancel.setText('Отмена')
+                message.exec()
+                if message.clickedButton() == btnclose:
                     self.clearCanvas()
+                elif message.clickedButton() == btnsave:
+                    self.saveFile()
+                    if not self.canvas.saved:
+                        pass
+                    else:
+                        self.clearCanvas()
+                else:
+                    pass
             else:
                 self.clearCanvas()
 
@@ -769,17 +802,7 @@ class Window(QMainWindow):  # класс окна
         self.message = QMessageBox()
         self.message.setIcon(QMessageBox.Information)
         self.message.setWindowTitle('Информация о проекте')
-        self.message.setText('2020-2022. ver. sfw_1.0\n\n\n'
-                             'Что нового:\n\n'
-                             'sfw_1.0\n\n'
-                             '- откат до стабильной 1.0 и переработка спорных моментов исходного релиза\n'
-                             '- версия 1.1 стала экспериментальной с последующим переходом в другую ветку\n\n'
-                             '1.1\n\n'
-                             '- исправлено сохранение в более удобную сторону\n'
-                             '- добавлены координаты под холст\n\n'
-                             '1.0\n\n'
-                             '- выход основной части приложения из стадии разработки\n\n'
-                             'Создано в некоммерческих целях.')
+        self.message.setText(INFO_TEXT)
         self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
 
@@ -794,16 +817,27 @@ class Window(QMainWindow):  # класс окна
     def closeEvent(self, event):  # перед закрытием ОБЯЗАТЕЛЬНО предупредить о сохранениях
         if self.main_widget.isEnabled():
             if not self.canvas.saved:
-                self.message = QMessageBox()
-                self.message.setIcon(QMessageBox.Warning)
-                self.message.setWindowTitle('Предупреждение')
-                self.message.setText('Вы собираетесь завершить работу с несохраненным файлом.\n'
-                                     'Сохраниться?\n')
-                self.message.addButton('Да', QMessageBox.YesRole)
-                self.message.addButton('Нет', QMessageBox.NoRole)
-                self.message.exec()
-                if self.message.buttonRole(self.message.clickedButton()) == 5:
+                message = QMessageBox()
+                message.setIcon(QMessageBox.Warning)
+                message.setWindowTitle('Предупреждение')
+                message.setText('Вы собираетесь завершить работу с несохраненным файлом.\n'
+                                'Сохраниться?\n')
+                message.setStandardButtons(QMessageBox.Save | QMessageBox.Close | QMessageBox.Cancel)
+                btnsave = message.button(QMessageBox.Save)
+                btnsave.setText('Да')
+                btnclose = message.button(QMessageBox.Close)
+                btnclose.setText('Нет')
+                btncancel = message.button(QMessageBox.Cancel)
+                btncancel.setText('Отмена')
+                message.exec()
+                if message.clickedButton() == btnclose:
+                    event.accept()
+                elif message.clickedButton() == btnsave:
                     self.saveFile()
+                    if not self.canvas.saved:
+                        event.ignore()
+                else:
+                    event.ignore()
 
 
 if __name__ == '__main__':

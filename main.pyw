@@ -7,6 +7,7 @@ PyQt6 и бесплатный для любого типа проектов PySi
 лицензии был предрешен еще в зачатке идеи. Библиотека sys открывает доступ к возможностям системы, здесь ее
 функционал сведен до открытия приложения в потоке и работы с файлами.
 """
+
 import sys
 
 from PyQt5 import uic
@@ -21,12 +22,22 @@ from PyQt5.QtCore import *
     INFO_TEXT - текст раздела "О программе". Открывает файл about.txt в папке приложения src и считывает все строки
     с него
 """
+
 MAINSIZE_KEYS = {'Маленькая': 2,
                  'Средняя': 3,
                  'Большая': 5,
                  'Очень большая': 8}
 HELP_TEXT = ''.join(open('src/help.txt', mode='r', encoding='utf-8').readlines())
 INFO_TEXT = ''.join(open('src/about.txt', mode='r', encoding='utf-8').readlines())
+
+"""
+Функция setIcon. Задает иконку диалоговому окну. Функционал выведен в отдельный блок, потому что в приложении
+присутствуют несколько диалоговых окон, которым каждый раз нужно задавать иконку.
+"""
+
+
+def setIcon(msgbox):
+    msgbox.setWindowIcon(QIcon('src/window_icon.ico'))
 
 
 class Canvas(QWidget):
@@ -632,8 +643,9 @@ class Triangle:
 
     """
     Класс Triangle, он же Треугольник. Самодельный класс инструмента, призванный отвечать за прорисовку треугольника.
-    Реализовано через рисование многоугольника внутри области прямоугольника по правилу: левый крайний, правый крайний
-    и середина верхнего (или нижнего, в зависимости от того, куда смещена мышь по y относительно начала) основания.
+    Реализовано через рисование многоугольника внутри области прямоугольника по следующему правилу: левый крайний,
+    правый крайний и середина верхнего (или нижнего, в зависимости от того, куда смещена мышь по y относительно начала)
+    основания.
 
     Параметры при инициализации экземпляра класса Triangle:
         sx - x точки начала
@@ -680,7 +692,9 @@ class Triangle:
 class Rectangle:
 
     """
-    Класс Rectangle, он же Прямоугольник. Самодельный класс инструмента, призванный за прорисовку
+    Класс Rectangle, он же Прямоугольник. Самодельный класс инструмента, призванный за прорисовку прямоугольника.
+    Собственно, ничего тут не поменяешь - раз уж есть встроенный метод drawRect по рисованию прямоугольника, используй
+    его.
 
     Параметры при инициализации экземпляра класса Rectangle:
         sx - x точки начала
@@ -706,7 +720,7 @@ class Rectangle:
 
     """
     Ранее упомянутый метод draw. Задает ручку, а если еще и заливка разрешена, задает кисть (в противном случае, кисть
-    отменяется) и рисует прямоугольник встроенным методом drawRect
+    отменяется) и рисует прямоугольник встроенным методом drawRect.
     """
 
     def draw(self, painter):
@@ -719,6 +733,25 @@ class Rectangle:
 
 
 class Pentagon:
+
+    """
+    Класс Pentagon, он же Пятиугольник. Самодельный класс инструмента, призванный отвечать за прорисовку пятиугольника.
+    Реализовано через рисование многоугольника внутри области прямоугольника по следующему правилу
+    (начиная с нижней левой точки, по часовой стрелке): 19% от длины нижнего основания, 61% от длины левого края,
+    половина верхнего основания, 61% от длины правого края и 81% от длины нижнего основания. Это может показаться
+    странным, но именно так рисуется пятиугольник в MS Paint, проверено лично.
+
+    Параметры при инициализации экземпляра класса Pentagon:
+        sx - x точки начала
+        sy - y точки начала
+        x - x точки конца
+        y - y точки конца
+        to_fill - разрешение на заливку
+        size - толщина контура
+        color - цвет контура
+        color_2 - цвет заливки
+    """
+
     def __init__(self, sx, sy, x, y, fill, size, color, color_2):
         super(Pentagon, self).__init__()
         self.sx = sx
@@ -730,6 +763,12 @@ class Pentagon:
         self.color = color
         self.color_2 = color_2
 
+    """
+    Ранее упомянутый метод draw. Задает ручку, а если еще и заливка разрешена, задает кисть (в противном случае, кисть
+    отменяется) и рисует многоугольник по точкам. Координаты точек задаются в соответствии с правилом построения
+    пятиугольника внутри прямоугольника.
+    """
+
     def draw(self, painter):
         painter.setPen(QPen(self.color, self.size))
         if self.to_fill:
@@ -739,8 +778,6 @@ class Pentagon:
         pentagon = QPolygon()
         dist_x = self.x - self.sx
         dist_y = self.y - self.sy
-        # для такого шаманства обратился к нарисованному в MS Paint пятиугольнику
-        # и самостоятельно просчитывал координаты
         pentagon.append(QPoint(self.sx + int(dist_x * 0.19), self.sy))
         pentagon.append(QPoint(self.sx, self.sy + int(dist_y * 0.61)))
         pentagon.append(QPoint(self.sx + dist_x // 2, self.y))
@@ -750,6 +787,25 @@ class Pentagon:
 
 
 class Hexagon:
+
+    """
+    Класс Hexagon, он же Шестиугольник. Самодельный класс инструмента, призванный отвечать за прорисовку шестиугольника.
+    Реализовано через рисование многоугольника внутри области прямоугольника по следующему правилу
+    (начиная с нижней точки, по часовой стрелке): середина нижнего основания, 25% от длины левого края,
+    75% от длины левого края, середина верхнего основания, 75% от длины правого края и 25% от длины правого края.
+    Это может показаться странным, но именно так рисуется шестиугольник в MS Paint, проверено лично.
+
+    Параметры при инициализации экземпляра класса Hexagon:
+        sx - x точки начала
+        sy - y точки начала
+        x - x точки конца
+        y - y точки конца
+        to_fill - разрешение на заливку
+        size - толщина контура
+        color - цвет контура
+        color_2 - цвет заливки
+    """
+
     def __init__(self, sx, sy, x, y, fill, size, color, color_2):
         super(Hexagon, self).__init__()
         self.sx = sx
@@ -761,6 +817,12 @@ class Hexagon:
         self.color = color
         self.color_2 = color_2
 
+    """
+    Ранее упомянутый метод draw. Задает ручку, а если еще и заливка разрешена, задает кисть (в противном случае, кисть
+    отменяется) и рисует многоугольник по точкам. Координаты точек задаются в соответствии с правилом построения
+    шестиугольника внутри прямоугольника.
+    """
+
     def draw(self, painter):
         painter.setPen(QPen(self.color, self.size))
         if self.to_fill:
@@ -770,8 +832,6 @@ class Hexagon:
         hexagon = QPolygon()
         dist_x = self.x - self.sx
         dist_y = self.y - self.sy
-        # для такого шаманства обратился к нарисованному в MS Paint шестиугольнику
-        # и самостоятельно просчитывал координаты
         hexagon.append(QPoint(self.sx + dist_x // 2, self.sy))
         hexagon.append(QPoint(self.sx, self.sy + int(dist_y * 0.25)))
         hexagon.append(QPoint(self.sx, self.sy + int(dist_y * 0.75)))
@@ -782,6 +842,26 @@ class Hexagon:
 
 
 class Octagon:
+
+    """
+    Класс Octagon, он же Восьмиугольник. Самодельный класс инструмента, призванный отвечать за прорисовку
+    восьмиугольника. Реализовано через рисование многоугольника внутри области прямоугольника по следующему правилу
+    (начиная с нижней левой точки, по часовой стрелке): 25% от длины нижнего основания, 25% от длины левого края,
+    75% от длины левого края, 25% от длины верхнего основания, 75% от длины верхнего основания,
+    75% от длины правого края, 25% от длины правого края и 75% от длины нижнего основания. Это может показаться
+    странным, но именно так рисуется восьмиугольник в MS Paint, проверено лично.
+
+    Параметры при инициализации экземпляра класса Octagon:
+        sx - x точки начала
+        sy - y точки начала
+        x - x точки конца
+        y - y точки конца
+        to_fill - разрешение на заливку
+        size - толщина контура
+        color - цвет контура
+        color_2 - цвет заливки
+    """
+
     def __init__(self, sx, sy, x, y, fill, size, color, color_2):
         super(Octagon, self).__init__()
         self.sx = sx
@@ -792,6 +872,12 @@ class Octagon:
         self.size = size
         self.color = color
         self.color_2 = color_2
+
+    """
+    Ранее упомянутый метод draw. Задает ручку, а если еще и заливка разрешена, задает кисть (в противном случае, кисть
+    отменяется) и рисует многоугольник по точкам. Координаты точек задаются в соответствии с правилом построения
+    восьмиугольника внутри прямоугольника.
+    """
 
     def draw(self, painter):
         painter.setPen(QPen(self.color, self.size))
@@ -813,39 +899,83 @@ class Octagon:
         painter.drawPolygon(octagon)
 
 
-class Fill:  # класс заливки
+class Fill:
+
+    """
+    Класс Fill, он же Заливка. Самодельный класс инструмента, призванный отвечать за заливку всего холста.
+    По сути, рисует прямоугольник с заливкой во весь холст.
+
+    Параметры при инициализации экземпляра класса Fill:
+        w - ширина
+        h - высота
+        color - цвет заливки
+    """
+
     def __init__(self, w, h, color):
         super(Fill, self).__init__()
         self.w = w
         self.h = h
         self.color = color
 
-    def draw(self, painter):  # заливка построена на прямоугольнике во весь холст заданного цвета
+    """
+    Ранее упомянутый метод draw. Задает ручку и кисть одного и того же цвета и рисует прямоугольник от начала холста
+    до его конца.
+    """
+
+    def draw(self, painter):
         painter.setPen(QPen(self.color))
         painter.setBrush(QBrush(self.color))
         painter.drawRect(0, 0, self.w, self.h)
 
 
-class Image:  # класс картинки
-    def __init__(self, w, h, file):
+class Image:
+
+    """
+    Класс Image, он же Картинка. Самодельный класс инструмента, призванный отвечать за прорисовку загруженной
+    пользователем картинки. Класс открывает картинку в виде объекта QImage и рисует ее на холст в исходном размере в
+    верхний левый край.
+
+    Параметры при инициализации экземпляра класса Image:
+        file - файл с картинкой
+    """
+
+    def __init__(self, file):
         super(Image, self).__init__()
-        self.rect = QRect(0, 0, w, h)
         self.file = file
 
-    def draw(self, painter):  # создаем картинку, загружаем файл и ставим ее на весь холст
+    """
+    Ранее упомянутый метод draw. Загружает выбранный файл в класс QImage и передает ее "рисовальшику".
+    """
+
+    def draw(self, painter):
         image = QImage()
         image.load(self.file)
-        painter.drawImage(self.rect, image)
+        painter.drawImage(image.rect(), image)
 
 
-class Save:  # класс сохранения, создает картинку для сохранения
+class Save(Canvas):
+
+    """
+    Класс Save, он же Сохранение. Самодельный служебный класс, призванный отвечать за сохранение разрисованного холста.
+    Зарисовывает весь холст на отдельную картинку и сохраняет ее. Класс наследован от Canvas из-за того, что
+    возможностью открыть окно сохранения обладает только класс QWidget, от которого и наследован Canvas.
+
+    Параметры при инициализации экземпляра класса Save:
+        size - размер (на деле, просто переданный размер холста)
+    """
+
     def __init__(self, size):
         super(Save, self).__init__()
         self.file = None
         self.image = QImage(size, QImage.Format_RGB16)
         self.image.fill(Qt.white)
 
-    def save(self, objects):  # нарисуем все объекты холста на картинке и сохраним эту картинку
+    """
+    Метод save. Рисует на созданной картинке все объекты по очереди и спрашивает у пользователя, куда сохранить
+    картинку. Если пользователь дал файл, сохраняем, иначе игнорируем.
+    """
+
+    def save(self, objects):
         painter = QPainter(self.image)
         for obj in objects:
             obj.draw(painter)
@@ -854,14 +984,25 @@ class Save:  # класс сохранения, создает картинку 
         if self.file:
             self.image.save(self.file)
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawImage(self.rect(), self.image, self.image.rect())
 
+class Window(QMainWindow):
 
-class Window(QMainWindow):  # класс окна
-    def setIcon(self, msgbox):
-        msgbox.setWindowIcon(QIcon('src/window_icon.ico'))
+    """
+    Класс Window, он же Окно. На ряду с Canvas, самый важный класс приложения, так как он создает окно и отвечает за
+    все процессы внутри него. Параметров инициализации у класса нет, гораздо важнее рассказать про процесс
+    инициализации:
+        - Загружаем .ui файл с интерфейсом, созданном в Qt Designer
+        - Отключаем окно, разрешаем пользователю использовать верхнее меню инструментов, а приложению - отслеживать мышь
+        - Окно отключили, чтобы пользователь не успел наделать дел. Чтобы это не казалось странным, вызываем стартовое
+        диалоговое окно и таким образом "задерживаем" пользователя на небольшое время
+        - Создаем холст и вносим его в интерфейс, в том числе и его цвета
+        - Добавляем в список толщин, непосредственно, толщины, подвязываем список к действию смены толщин и задаем
+        значение по умолчанию
+        - Подвязываем кнопки инструментов к действиям смены инструментов
+        - Подвязываем кнопки переключения цветов и флажок заливки
+        - Подтягиваем служебные команды из разделов "Файл" и "Инфо" к приложению
+        - На конец, подключаем все кнопки цветов
+    """
 
     def __init__(self):
         super(Window, self).__init__()
@@ -870,26 +1011,26 @@ class Window(QMainWindow):  # класс окна
         self.main_widget.setEnabled(False)
         self.setMouseTracking(True)
         self.menubar.setEnabled(False)
-        # это чтобы юзер мог получать по шапке вовремя, но для начала выведем стартовое сообщение
+
         self.message = QMessageBox()
-        self.setIcon(self.message)
+        setIcon(self.message)
         self.message.setIcon(QMessageBox.Information)
         self.message.setWindowTitle('Перед запуском')
         self.message.setText('Чтобы начать работу, создайте новый холст или откройте существующую картинку.')
         self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
         self.menubar.setEnabled(True)
-        # создаем холст
+
         self.canvas = Canvas()
         self.canvas_layout.addWidget(self.canvas)
         self.color_layout.addWidget(self.canvas.color_pix1, 0, 0)
         self.color_layout.addWidget(self.canvas.color_pix2, 0, 1)
         self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # настраиваем список толщин
+
         self.size_box.addItems(MAINSIZE_KEYS.keys())
         self.size_box.activated.connect(self.canvas.setSize)
         self.size_box.setCurrentIndex(1)
-        # подключение кнопок к инструментам
+
         self.brush_button.setDefaultAction(self.action_brush)
         self.pencil_button.setDefaultAction(self.action_pencil)
         self.fill_button.setDefaultAction(self.action_fill)
@@ -901,7 +1042,6 @@ class Window(QMainWindow):  # класс окна
         self.pentagon_button.setDefaultAction(self.action_pentagon)
         self.hexagon_button.setDefaultAction(self.action_hexagon)
         self.octagon_button.setDefaultAction(self.action_octagon)
-        # подключение инструментов
         self.action_brush.triggered.connect(self.canvas.setBrush)
         self.action_pencil.triggered.connect(self.canvas.setPencil)
         self.action_fill.triggered.connect(self.canvas.setFill)
@@ -913,17 +1053,19 @@ class Window(QMainWindow):  # класс окна
         self.action_pentagon.triggered.connect(self.canvas.setPentagon)
         self.action_hexagon.triggered.connect(self.canvas.setHexagon)
         self.action_octagon.triggered.connect(self.canvas.setOctagon)
-        # подключение переключателей
+
         self.fill_check.toggled.connect(self.canvas.setFigureFill)
         self.maincolor_button.toggled.connect(self.canvas.setDefaultColor)
         self.secondcolor_button.toggled.connect(self.canvas.setDefaultColor)
         self.maincolor_button.setChecked(True)
-        # настройки файла
+
         self.action_open.triggered.connect(self.openFile)
         self.action_save.triggered.connect(self.saveFile)
         self.action_create.triggered.connect(self.newCanvas)
         self.action_clear.triggered.connect(self.clearCanvas)
-        # подключение кнопок цветов к действиям
+        self.action_aboutme.triggered.connect(self.aboutProgram)
+        self.action_help.triggered.connect(self.helpMe)
+
         self.red_button.setDefaultAction(self.action_red)
         self.red_button.setText('')
         self.orange_button.setDefaultAction(self.action_orange)
@@ -953,7 +1095,6 @@ class Window(QMainWindow):  # класс окна
         self.pink_button.setDefaultAction(self.action_pink)
         self.pink_button.setText('')
         self.customcolor_button.clicked.connect(self.canvas.setCustomColor)
-        # подключение стандартных цветов
         self.action_red.triggered.connect(self.canvas.setRed)
         self.action_orange.triggered.connect(self.canvas.setOrange)
         self.action_yellow.triggered.connect(self.canvas.setYellow)
@@ -968,38 +1109,50 @@ class Window(QMainWindow):  # класс окна
         self.action_brown.triggered.connect(self.canvas.setBrown)
         self.action_darkred.triggered.connect(self.canvas.setDarkRed)
         self.action_pink.triggered.connect(self.canvas.setPink)
-        # особые кнопочки
-        self.action_aboutme.triggered.connect(self.aboutProgram)
-        self.action_help.triggered.connect(self.helpMe)
 
-    def openFile(self):  # открываем файл
+    """
+    Метод openFile. Работает с пользователем по открытию файла. Также привязан к окну, потому что при запуске окно
+    отключено, а чтобы его "разблокировать", нужно создать новый холст или открыть картинку.
+    """
+
+    def openFile(self):
         file = QFileDialog.getOpenFileName(self, 'Открытие', 'C:/', '(*.png);;(*.jpg);;(*.bmp)')[0]
         if file:
             self.canvas.objects.clear()
-            self.canvas.objects.append(Image(self.canvas.width(), self.canvas.height(), file))  # просто рисуем объект
-            # класса картинка
+            self.canvas.objects.append(Image(file))
             if not self.main_widget.isEnabled():
                 self.main_widget.setEnabled(True)
 
-    def saveFile(self):  # сохраняем файл, то есть, выполняем метод сохранения из класса сохранения
+    """
+    Метод saveFile. Работает над сохранением разрисованного холста. Если сохранение состоялось, кол-во сохраненных
+    объектов холста обновляется, а холст становится сохраненным
+    """
+
+    def saveFile(self):
         saver = Save(self.canvas.size())
         saver.save(self.canvas.objects)
         if saver.file:
             self.canvas.saved_objects = len(self.canvas.objects)
             self.canvas.saved = True
 
-    def newCanvas(self):  # создаем файл
-        if not self.main_widget.isEnabled():  # при запуске окно отключено, чтобы юзер не намутил лишнего
+    """
+    Метод newCanvas. Создает "новый" холст. Первостепенная задача этого метода - дать пользователю начать рисование,
+    далее - стирать холст и обновлять его. При этом пользователь имеет выбор между опциями "Создать холст" и "Очистить
+    холст". Функционально "создание холста" и является "очисткой холста", только "создание холста" предупреждает
+    пользователя о возможных потерях и предлагает сохраниться, в отличии от "очистки холста".
+    """
+
+    def newCanvas(self):
+        if not self.main_widget.isEnabled():
             self.main_widget.setEnabled(True)
             self.clearCanvas()
         else:
             if not self.canvas.saved:
                 self.message = QMessageBox()
-                self.setIcon(self.message)
+                setIcon(self.message)
                 self.message.setIcon(QMessageBox.Warning)
                 self.message.setWindowTitle('Предупреждение')
-                self.message.setText('Создание нового холста приведет к потери текущего.\n'
-                                'Сохраниться?\n')
+                self.message.setText('Создание нового холста приведет к потери текущего.\nСохраниться?\n')
                 self.message.setStandardButtons(QMessageBox.Save | QMessageBox.Close | QMessageBox.Cancel)
                 btnsave = self.message.button(QMessageBox.Save)
                 btnsave.setText('Да')
@@ -1021,38 +1174,57 @@ class Window(QMainWindow):  # класс окна
             else:
                 self.clearCanvas()
 
-    def clearCanvas(self):  # рисует объект класса заливки белого цвета
+    """
+    Метод clearCanvas. Очищает холст, то есть, удаляет все объекты и заливает чистым белым. Разница между "очисткой"
+    и "созданием" объяснена выше.
+    """
+
+    def clearCanvas(self):
         self.canvas.objects.clear()
         self.canvas.objects.append(Fill(self.canvas.width(), self.canvas.height(), Qt.white))
         self.update()
 
-    def aboutProgram(self):  # не бейте за такое кощунство, но лучше уж написать инфо, пока не поздно
+    """
+    Метод aboutProgram. Создает информационное диалоговое окно и выводит информацию о программе с заготовленного текста.
+    """
+
+    def aboutProgram(self):
         self.message = QMessageBox()
-        self.setIcon(self.message)
+        setIcon(self.message)
         self.message.setIcon(QMessageBox.Information)
         self.message.setWindowTitle('Информация о проекте')
         self.message.setText(INFO_TEXT)
         self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
 
-    def helpMe(self):  # самый крутой и важный метод
+    """
+    Метод helpMe. Создает информационное диалоговое окно и выводит заготовленный текст-подсказку.
+    """
+
+    def helpMe(self):
         self.message = QMessageBox()
-        self.setIcon(self.message)
+        setIcon(self.message)
         self.message.setIcon(QMessageBox.Information)
         self.message.setWindowTitle('Помощь')
         self.message.setText(HELP_TEXT)
         self.message.addButton('ОК', QMessageBox.YesRole)
         self.message.exec()
 
-    def closeEvent(self, event):  # перед закрытием ОБЯЗАТЕЛЬНО предупредить о сохранениях
+    """
+    Встроенный метод класса QMainWindow, от которого унаследован Окно. Срабатывает, если ядро библиотеки 
+    фиксирует закрытие приложения. Если окно так и не было "разблокировано", все в порядке. А если нет, проверяем, 
+    сохранен ли холст, если нет, то предлагаем сохраниться. "Да" - сохраняем и выходим. "Нет" - сразу выходим.
+    "Отмена" - откладываем закрытие приложения, пока пользователь не решит.
+    """
+
+    def closeEvent(self, event):
         if self.main_widget.isEnabled():
             if not self.canvas.saved:
                 self.message = QMessageBox()
-                self.setIcon(self.message)
+                setIcon(self.message)
                 self.message.setIcon(QMessageBox.Warning)
                 self.message.setWindowTitle('Предупреждение')
-                self.message.setText('Вы собираетесь завершить работу с несохраненным файлом.\n'
-                                'Сохраниться?\n')
+                self.message.setText('Вы собираетесь завершить работу с несохраненным файлом.\nСохраниться?\n')
                 self.message.setStandardButtons(QMessageBox.Save | QMessageBox.Close | QMessageBox.Cancel)
                 btnsave = self.message.button(QMessageBox.Save)
                 btnsave.setText('Да')
@@ -1077,6 +1249,7 @@ class Window(QMainWindow):  # класс окна
 части находится инициализация приложения и отслеживание его работы в системе, ВСЁ приложение не заработает как
 импортированная библиотека.
 """
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     wnd = Window()

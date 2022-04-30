@@ -9,6 +9,7 @@ PyQt6 и бесплатный для любого типа проектов PySi
 """
 
 import sys
+import os
 
 from PyQt5 import uic
 from PyQt5.QtGui import *
@@ -27,8 +28,12 @@ MAINSIZE_KEYS = {'Маленькая': 2,
                  'Средняя': 3,
                  'Большая': 5,
                  'Очень большая': 8}
-HELP_TEXT = ''.join(open('src/help.txt', mode='r', encoding='utf-8').readlines())
-INFO_TEXT = ''.join(open('src/about.txt', mode='r', encoding='utf-8').readlines())
+dir_help = os.path.join(os.path.dirname(__file__), 'help.txt')
+dir_info = os.path.join(os.path.dirname(__file__), 'about.txt')
+dir_ui = os.path.join(os.path.dirname(__file__), 'window.ui')
+dir_icon = os.path.join(os.path.dirname(__file__), 'window_icon.ico')
+HELP_TEXT = ''.join(open(dir_help, mode='r', encoding='utf-8').readlines())
+INFO_TEXT = ''.join(open(dir_info, mode='r', encoding='utf-8').readlines())
 
 """
 Функция setIcon. Задает иконку диалоговому окну. Функционал выведен в отдельный блок, потому что в приложении
@@ -37,7 +42,8 @@ INFO_TEXT = ''.join(open('src/about.txt', mode='r', encoding='utf-8').readlines(
 
 
 def setIcon(msgbox):
-    msgbox.setWindowIcon(QIcon('src/window_icon.ico'))
+    global dir_icon
+    msgbox.setWindowIcon(QIcon(dir_icon))
 
 
 class Canvas(QWidget):
@@ -1006,7 +1012,7 @@ class Window(QMainWindow):
 
     def __init__(self):
         super(Window, self).__init__()
-        uic.loadUi('src/window.ui', self)
+        uic.loadUi(dir_ui, self)
 
         self.main_widget.setEnabled(False)
         self.setMouseTracking(True)
@@ -1250,8 +1256,13 @@ class Window(QMainWindow):
 импортированная библиотека.
 """
 
-if __name__ == '__main__':
+
+def main():
     app = QApplication(sys.argv)
     wnd = Window()
     wnd.showMaximized()
     sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    main()
